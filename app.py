@@ -77,22 +77,43 @@ st.markdown("""
 # ======================
 st.markdown('<div class="title">🚗 Ride Demand & Fare Predictor</div>', unsafe_allow_html=True)
 
-# ======================
-# LOAD DATA
-# ======================
-df = pd.read_csv("fairfare_ride_demand_dataset.csv")
-df = df.ffill()
-df = pd.get_dummies(df, drop_first=True)
 
 # ======================
-# MODEL TRAINING
+# LOAD DATA AND TRAIN MODELS
 # ======================
-X = df.drop(['Final_Fare', 'Demand_Score'], axis=1)
-y_fare = df['Final_Fare']
-y_demand = df['Demand_Score']
 
-fare_model = RandomForestRegressor().fit(X, y_fare)
-demand_model = RandomForestRegressor().fit(X, y_demand)
+@st.cache_data
+def load_data():
+    df = pd.read_csv("fairfare_ride_demand_dataset.csv")
+    return df.ffill()
+
+@st.cache_resource
+def train_models(df):
+    processed = pd.get_dummies(df, drop_first=True)
+
+    X = processed.drop(["Final_Fare", "Demand_Score"], axis=1)
+    y_fare = processed["Final_Fare"]
+    y_demand = processed["Demand_Score"]
+
+    fare_model = RandomForestRegressor(
+        n_estimators=50,
+        random_state=42,
+        n_jobs=-1
+    )
+    demand_model = RandomForestRegressor(
+        n_estimators=50,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    fare_model.fit(X, y_fare)
+    demand_model.fit(X, y_demand)
+
+    return processed, X, fare_model, demand_model
+
+df = load_data()
+df, X, fare_model, demand_model = train_models(df)
+
 
 # ======================
 # STATS CARDS
